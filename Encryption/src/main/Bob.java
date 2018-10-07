@@ -39,6 +39,7 @@ public class Bob {
 			return;
 		}
 		
+		
 		//keep track of which countermeasure to employ; default if "No encryption"
 		boolean encrypt = false;
 		boolean macs = false;
@@ -46,24 +47,24 @@ public class Bob {
 		//Resolve the version
 		resolveVersion(args[4], encrypt, macs);
 		
-		int portNumber = Integer.parseInt(args[3]);
 		
+		int portNumber = Integer.parseInt(args[3]);
 		try {
+			System.out.println(portNumber);
 			ServerSocket bobServer = new ServerSocket(portNumber);
+			System.out.println("Bob Server started");
 			Socket clientSocket = bobServer.accept();
-			
+			System.out.println("Client connected");
 			BufferedReader in = new BufferedReader(
 						new InputStreamReader(clientSocket.getInputStream()));
-			
-			
-			
+			System.out.print("Client input: ");
 			String inputLine;
 			while ((inputLine = in.readLine()) != null) {
 				System.out.println(inputLine);
 			}
 			
-			
-			
+			bobServer.close();
+			System.out.println("Bob Server closed");
 		} 
 		catch (IOException e) {
 			//print error or smthng

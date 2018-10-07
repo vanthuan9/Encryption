@@ -27,45 +27,48 @@ public class Mallory {
 		}
 		
 		int portNumber = Integer.parseInt(args[2]);
-		
-//		try {
-//			ServerSocket bobServer = new ServerSocket(portNumber);
-//			Socket clientSocket = bobServer.accept();
-//			
-//			BufferedReader in = new BufferedReader(
-//						new InputStreamReader(clientSocket.getInputStream()));
-//			
-//			String inputLine;
-//			while ((inputLine = in.readLine()) != null) {
-//				System.out.println(inputLine);
-//			}
-//			
-//		} 
-//		catch (IOException e) {
-//			//print error or smthng
-//		}
+		String inputLine = "original template";
+		System.out.println("Mallory Server started?");
+		try {
+			System.out.println(portNumber);;
+			ServerSocket malloryServer = new ServerSocket(portNumber);
+			System.out.println("Mallory Server started");
+			Socket clientSocket = malloryServer.accept();
+			System.out.println("Client connected");
+			
+			BufferedReader in = new BufferedReader(
+						new InputStreamReader(clientSocket.getInputStream()));
+			
+			System.out.print("Client input: ");
+
+			inputLine = in.readLine();
+
+			malloryServer.close();
+			System.out.println("Mallory Server closed");
+			
+		} 
+		catch (IOException e) {
+			//print error or smthng
+		}
 		
 		int bobPortNumber = Integer.parseInt(args[3]);
 		String serverAddress = "localhost";
 		try{
 			Socket bobSocket = new Socket(serverAddress, bobPortNumber);
+			System.out.println("Connected to Bob's Server");
+
 			OutputStream os = bobSocket.getOutputStream();
 			OutputStreamWriter osw = new OutputStreamWriter(os);
 			BufferedWriter bw = new BufferedWriter(osw);
-			
-			String message = "RANDOM MESSAGE HAHA";
-			bw.write(message);
-			bw.flush();
-			System.out.println("Message Sent");
-			
+			bw.write(inputLine);
+			bw.flush();			
+			System.out.println("Wrote to Bob's Server");
 		
 		}
 		catch(IOException e) {
 			//print error
 		}
-		
-		
-		
+				
 	}
 
 }
