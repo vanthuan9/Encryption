@@ -1,0 +1,25 @@
+Gen:
+-Doesn't need input
+-Generate key file; probably txt file
+-javax.crypto.KeyGenerator(BlockEncryption)
+-java.security.KeyPairGenerator(Public Key)
+
+Bob:
+-Takes an encrypted msg, decrypts it, and displays it.
+-Checks for traces of Mallory
+
+Alice:
+-sends a string(potentially encrypted) to Mallory
+-msg should include a sequence number
+
+Mallory:
+-Takes an msg from Alice
+-No Crypto: display plain text
+  . delete a msg
+  . modify a msg
+
+-Symmetric Only: displays cipher text
+  . that's it? no modification of msg?
+
+-MACs Only: displays both plain text and tag
+-Both: displays both cipher text and tag
