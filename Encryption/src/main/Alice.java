@@ -1,10 +1,7 @@
 package main;
 
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.net.Socket;
+import java.io.*;
+import java.net.*;
 import java.util.Scanner;
 
 public class Alice {
@@ -23,32 +20,65 @@ public class Alice {
 		if (args.length != 5) {
 			return;
 		}
+		System.out.println("This is Alice");
 		
 		int malPortNumber = Integer.parseInt(args[3]);
 		String serverAddress = "localhost";
 		try{
+			System.out.println("Connecting to Mallory at ("+malPortNumber+", "+serverAddress +")...");
 			Socket malSocket = new Socket(serverAddress, malPortNumber);
-			OutputStream os = malSocket.getOutputStream();
-			OutputStreamWriter osw = new OutputStreamWriter(os);
-			BufferedWriter bw = new BufferedWriter(osw);
+			System.out.println("Connected to Mallory");
 			
-			String message; 
-			Scanner reader = new Scanner(System.in);
+			Scanner console = new Scanner(System.in);
+			DataOutputStream streamOut = new DataOutputStream(malSocket.getOutputStream());
 			
-			System.out.println("What should Alice tell Bob?");
-			message = reader.nextLine();
-			bw.write(message);
-			bw.flush();
-			System.out.println("Message Sent");
+			String line = "";
+			while(!line.equals("done")) {
+				try
+		         {  System.out.print("Type message: ");
+					line = console.nextLine();
+					
+		            streamOut.writeUTF(line);
+		            streamOut.flush();
+		            System.out.println("Message sent");
+		         }
+		         catch(IOException ioe)
+		         {  
+		        	 System.out.println("Sending error: " + ioe.getMessage());
+		         }
+				
+			}
 			
+			console.close();
+			streamOut.close();
 			malSocket.close();
-			reader.close();
+			System.out.println("Farewell traveler");
+			
+//			OutputStream os = malSocket.getOutputStream();
+//			OutputStreamWriter osw = new OutputStreamWriter(os);
+//			BufferedWriter bw = new BufferedWriter(osw);
+//			
+//			String message; 
+//			Scanner reader = new Scanner(System.in);
+//			
+//			System.out.println("What should Alice tell Bob?");
+//			message = reader.nextLine();
+//			while(message.compareTo("done") != 0) {
+//				bw.write(message);
+//				bw.flush();
+//				System.out.println("Message Sent");
+//				System.out.println("Type new message");
+//				message = reader.nextLine();
+//			}
+//			
+//			System.out.println("Farewell traveler");
+//			
+//			malSocket.close();
+//			reader.close();
 		}
 		catch(IOException e) {
 			//print error
 		}
-		
-		
-		
+
 	}
 }

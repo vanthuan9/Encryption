@@ -1,10 +1,7 @@
 package main;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.io.*;
+import java.net.*;
 
 public class Bob {
 	
@@ -39,7 +36,7 @@ public class Bob {
 			return;
 		}
 		
-		
+		System.out.println("This is Bob");
 		//keep track of which countermeasure to employ; default if "No encryption"
 		boolean encrypt = false;
 		boolean macs = false;
@@ -50,21 +47,37 @@ public class Bob {
 		
 		int portNumber = Integer.parseInt(args[3]);
 		try {
-			System.out.println(portNumber);
+			System.out.println("Connecting to port "+portNumber+"...");
 			ServerSocket bobServer = new ServerSocket(portNumber);
-			System.out.println("Bob Server started");
+			System.out.println("Bob Server started at port "+portNumber);
 			Socket clientSocket = bobServer.accept();
 			System.out.println("Client connected");
-			BufferedReader in = new BufferedReader(
-						new InputStreamReader(clientSocket.getInputStream()));
-			System.out.print("Client input: ");
-			String inputLine;
-			while ((inputLine = in.readLine()) != null) {
-				System.out.println(inputLine);
+			
+			DataInputStream streamIn = new DataInputStream(new BufferedInputStream(clientSocket.getInputStream()));
+			boolean finished = false;
+			while(!finished) {
+				try {
+					String line = streamIn.readUTF();
+					System.out.println("Message from Mallory: "+line);
+					finished = line.equals("done");
+				}
+				catch(IOException ioe) {
+					finished = true;
+				}
+				
 			}
 			
+//			BufferedReader in = new BufferedReader(
+//						new InputStreamReader(clientSocket.getInputStream()));
+//			System.out.print("Client input: ");
+//			String inputLine;
+//			while ((inputLine = in.readLine()) != null) {
+//				System.out.println(inputLine);
+//			}
+			
 			bobServer.close();
-			System.out.println("Bob Server closed");
+			streamIn.close();
+			System.out.println("Bob closed");
 		} 
 		catch (IOException e) {
 			//print error or smthng
