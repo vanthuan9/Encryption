@@ -5,6 +5,60 @@ import java.net.*;
 
 public class Bob {
 	
+	
+	private String alicePubKey;
+	private String bobPubKey;
+	private String bobPrivateKey;
+	private String malPort;
+	private String config;
+	
+	public Bob(String alicePubKey, String bobPubKey, String bobPrivateKey, String malPort, String config) {
+		this.alicePubKey = alicePubKey;
+		this.bobPubKey = bobPubKey;
+		this.bobPrivateKey = bobPrivateKey;
+		this.malPort = malPort;
+		this.config = config;
+		
+		
+		System.out.println("This is Bob");
+		//keep track of which countermeasure to employ; default if "No encryption"
+		boolean encrypt = false;
+		boolean macs = false;
+		
+		//Resolve the version
+		resolveVersion(config, encrypt, macs);
+		
+		int portNumber = Integer.parseInt(malPort);
+		try {
+			System.out.println("Connecting to port "+portNumber+"...");
+			ServerSocket bobServer = new ServerSocket(portNumber);
+			System.out.println("Bob Server started at port "+portNumber);
+			Socket clientSocket = bobServer.accept();
+			System.out.println("Client connected");
+			
+			DataInputStream streamIn = new DataInputStream(new BufferedInputStream(clientSocket.getInputStream()));
+			boolean finished = false;
+			while(!finished) {
+				try {
+					String line = streamIn.readUTF();
+					System.out.println("Message from Mallory: "+line);
+					finished = line.equals("done");
+				}
+				catch(IOException ioe) {
+					finished = true;
+				}
+			}
+			
+			bobServer.close();
+			streamIn.close();
+			System.out.println("Bob closed");
+		} 
+		catch (IOException e) {
+			//print error or smthng
+		}
+		
+	}
+	
 	private static void resolveVersion(String version, boolean encrypt, boolean macs) {
 		if (version == "No cryptography") {
 			//do nothing because this is the default version
@@ -36,52 +90,9 @@ public class Bob {
 			return;
 		}
 		
-		System.out.println("This is Bob");
-		//keep track of which countermeasure to employ; default if "No encryption"
-		boolean encrypt = false;
-		boolean macs = false;
-		
-		//Resolve the version
-		resolveVersion(args[4], encrypt, macs);
+		Bob bob = new Bob(args[0], args[1], args[2], args[3], args[4]);
 		
 		
-		int portNumber = Integer.parseInt(args[3]);
-		try {
-			System.out.println("Connecting to port "+portNumber+"...");
-			ServerSocket bobServer = new ServerSocket(portNumber);
-			System.out.println("Bob Server started at port "+portNumber);
-			Socket clientSocket = bobServer.accept();
-			System.out.println("Client connected");
-			
-			DataInputStream streamIn = new DataInputStream(new BufferedInputStream(clientSocket.getInputStream()));
-			boolean finished = false;
-			while(!finished) {
-				try {
-					String line = streamIn.readUTF();
-					System.out.println("Message from Mallory: "+line);
-					finished = line.equals("done");
-				}
-				catch(IOException ioe) {
-					finished = true;
-				}
-				
-			}
-			
-//			BufferedReader in = new BufferedReader(
-//						new InputStreamReader(clientSocket.getInputStream()));
-//			System.out.print("Client input: ");
-//			String inputLine;
-//			while ((inputLine = in.readLine()) != null) {
-//				System.out.println(inputLine);
-//			}
-			
-			bobServer.close();
-			streamIn.close();
-			System.out.println("Bob closed");
-		} 
-		catch (IOException e) {
-			//print error or smthng
-		}
 		
 
 		

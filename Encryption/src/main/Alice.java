@@ -5,24 +5,25 @@ import java.net.*;
 import java.util.Scanner;
 
 public class Alice {
-
-	/**
-	 * args[0] ; Alice's public key
-	 * args[1] ; Alice's private key
-	 * args[2] ; Bob's public key
-	 * args[3] ; port that Alice will connect to (Mallory's port)
-	 * args[4] ; program configuration
-	 */
 	
-	public static void main(String[] args) {
-		// TODO Auto-generated method stub
-		//check for correct # of args
-		if (args.length != 5) {
-			return;
-		}
+	private String alicePubKey;
+	private String alicePrivateKey;
+	private String bobPubKey;
+	private String malPort;
+	private String config;
+	
+	
+	public Alice(String alicePubKey, String alicePrivateKey, String bobPubKey, String malPort, String config) {
+
+		this.alicePubKey = alicePubKey;
+		this.alicePrivateKey = alicePrivateKey;
+		this.bobPubKey = bobPubKey;
+		this.malPort = malPort;
+		this.config = config;
+		
 		System.out.println("This is Alice");
 		
-		int malPortNumber = Integer.parseInt(args[3]);
+		int malPortNumber = Integer.parseInt(malPort);
 		String serverAddress = "localhost";
 		try{
 			System.out.println("Connecting to Mallory at ("+malPortNumber+", "+serverAddress +")...");
@@ -46,7 +47,6 @@ public class Alice {
 		         {  
 		        	 System.out.println("Sending error: " + ioe.getMessage());
 		         }
-				
 			}
 			
 			console.close();
@@ -54,30 +54,25 @@ public class Alice {
 			malSocket.close();
 			System.out.println("Farewell traveler");
 			
-//			OutputStream os = malSocket.getOutputStream();
-//			OutputStreamWriter osw = new OutputStreamWriter(os);
-//			BufferedWriter bw = new BufferedWriter(osw);
-//			
-//			String message; 
-//			Scanner reader = new Scanner(System.in);
-//			
-//			System.out.println("What should Alice tell Bob?");
-//			message = reader.nextLine();
-//			while(message.compareTo("done") != 0) {
-//				bw.write(message);
-//				bw.flush();
-//				System.out.println("Message Sent");
-//				System.out.println("Type new message");
-//				message = reader.nextLine();
-//			}
-//			
-//			System.out.println("Farewell traveler");
-//			
-//			malSocket.close();
-//			reader.close();
 		}
 		catch(IOException e) {
 			//print error
+		}
+	}
+
+	/**
+	 * args[0] ; Alice's public key
+	 * args[1] ; Alice's private key
+	 * args[2] ; Bob's public key
+	 * args[3] ; port that Alice will connect to (Mallory's port)
+	 * args[4] ; program configuration
+	 */
+	public static void main(String[] args) {
+		// TODO Auto-generated method stub
+		//check for correct # of args
+		if(args.length != 5) System.out.println("incorrect number of arguments");
+		else {
+			Alice alice = new Alice(args[0], args[1], args[2], args[3], args[4]);
 		}
 
 	}

@@ -6,71 +6,37 @@ import java.util.Scanner;
 
 public class Mallory {
 
-	/**
-	 * args[0] ; Alice's public key
-	 * args[1] ; Bob's public key
-	 * args[2] ; port that Alice will connect to (Mallory's port)
-	 * args[3] ; Bob's port
-	 * args[4] ; program configuration
-	 */
 
-	public static String modify(String s) {
-		
-		Scanner console = new Scanner(System.in);
-		System.out.println("Hehe how should we modifie this message? : "+s);
-		System.out.println("Type 'send' to send, 'delete' to delete, 'modify' to modify");
-		
-		boolean validInput = false;
-		String input;
-		while(!validInput) {
-			input = console.nextLine();
-			if(input.compareTo("send")==0) {
-				validInput = true;
-				return s;
-				
-			}
-			else if(input.compareTo("delete")==0) {
-				validInput = true;
-				System.out.println("Message deleted");
-				return null;
-			}
-			else if(input.compareTo("modify")==0) {
-				validInput = true;
-			}
-			else {
-				System.out.println("Invalid input, please type another input");
-			}
+	private Scanner console = new Scanner(System.in);
+	private Socket bobSocket;
+	private ServerSocket malloryServer;
+	private String alicePubKey;
+	private String bobPubKey;
+	private String malPort;
+	private String bobPort;
+	private String config;
 
-		}
+	public Mallory(String alicePubKey, String bobPubKey, String malPort, String bobPort, String config) {
+
+		this.alicePubKey = alicePubKey;
+		this.bobPubKey = bobPubKey;
+		this.malPort = malPort;
+		this.bobPort = bobPort;
+		this.config = config;
 		
-		System.out.println("What should we send Bob?");
-		String modifiedMessage = console.nextLine();
-		console.close();
-		return modifiedMessage;
-		
-	}
-	
-	public static void main(String[] args) {
-		// TODO Auto-generated method stub
-		//check for correct # of args
-		if (args.length != 5) {
-			return;
-		}
-		
-		int portNumber = Integer.parseInt(args[2]);
-		String inputLine = "original template";
+		int portNumber = Integer.parseInt(malPort);
 		System.out.println("This is Mallory");
 		
 		try {
-			int bobPortNumber = Integer.parseInt(args[3]);
+			int bobPortNumber = Integer.parseInt(bobPort);
 			String serverAddress = "localhost";
 			
 			System.out.println("Connecting to Bob at ("+bobPortNumber+", "+serverAddress +")...");
-			Socket bobSocket = new Socket(serverAddress, bobPortNumber);
+			bobSocket = new Socket(serverAddress, bobPortNumber);
 			System.out.println("Connected to Bob");
 			
 			System.out.println("Connecting to port "+portNumber +"...");
-			ServerSocket malloryServer = new ServerSocket(portNumber);
+			malloryServer = new ServerSocket(portNumber);
 			System.out.println("Mallory Server started at "+ portNumber);
 			Socket clientSocket = malloryServer.accept();
 			System.out.println("Client connected");
@@ -107,40 +73,61 @@ public class Mallory {
 			streamIn.close();
 			streamOut.close();
 			malloryServer.close();
+			console.close();
 			System.out.println("Mallory closed");
-			
-//			BufferedReader in = new BufferedReader(
-//						new InputStreamReader(clientSocket.getInputStream()));
-//			
-//			System.out.print("Client input: ");
-//
-//			inputLine = in.readLine();
-//			System.out.println(inputLine);
-//			malloryServer.close();
-//			System.out.println("Mallory Server closed");
 			
 		} 
 		catch (IOException e) {
 			//print error or smthng
-		}
-		
-		int bobPortNumber = Integer.parseInt(args[3]);
-		String serverAddress = "localhost";
-		try{
-			Socket bobSocket = new Socket(serverAddress, bobPortNumber);
-			System.out.println("Connected to Bob's Server");
+		}		
+	}
+	
 
-			OutputStream os = bobSocket.getOutputStream();
-			OutputStreamWriter osw = new OutputStreamWriter(os);
-			BufferedWriter bw = new BufferedWriter(osw);
-			bw.write(inputLine);
-			bw.flush();			
-			System.out.println("Wrote to Bob's Server");
+
+	public String modify(String s) {
 		
+		System.out.println("How should we modifie this message? : "+s);
+		System.out.println("Type 'send' to send, 'delete' to delete, 'modify' to modify");
+		
+		boolean validInput = false;
+		String input;
+		while(!validInput) {
+			input = console.nextLine();
+			if(input.compareTo("send")==0) {
+				validInput = true;
+				return s;
+				
+			}
+			else if(input.compareTo("delete")==0) {
+				validInput = true;
+				System.out.println("Message deleted");
+				return null;
+			}
+			else if(input.compareTo("modify")==0) {
+				validInput = true;
+			}
+			else {
+				System.out.println("Invalid input, please type another input");
+			}
+
 		}
-		catch(IOException e) {
-			//print error
-		}
+		
+		System.out.println("What should we send Bob?");
+		String modifiedMessage = console.nextLine();
+		return modifiedMessage;
+		
+	}
+	
+	
+	/**
+	 * args[0] ; Alice's public key
+	 * args[1] ; Bob's public key
+	 * args[2] ; port that Alice will connect to (Mallory's port)
+	 * args[3] ; Bob's port
+	 * args[4] ; program configuration
+	 */
+	public static void main(String[] args) {
+		Mallory mallory = new Mallory(args[0], args[1], args[2], args[3], args[4]);
 				
 	}
 
