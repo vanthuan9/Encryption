@@ -2,7 +2,7 @@ package main;
 
 import java.io.*;
 import java.net.*;
-import java.util.Scanner;
+import java.util.*;
 
 public class Mallory {
 
@@ -15,6 +15,8 @@ public class Mallory {
 	private String malPort;
 	private String bobPort;
 	private String config;
+	
+	private List<String> interceptHistory;
 
 	public Mallory(String alicePubKey, String bobPubKey, String malPort, String bobPort, String config) {
 
@@ -23,6 +25,8 @@ public class Mallory {
 		this.malPort = malPort;
 		this.bobPort = bobPort;
 		this.config = config;
+		
+		interceptHistory = new ArrayList<String>();
 		
 		int portNumber = Integer.parseInt(malPort);
 		System.out.println("This is Mallory");
@@ -50,8 +54,17 @@ public class Mallory {
 			
 			while(!finished) {
 				try {
+					
+					
 					String line = streamIn.readUTF();
+					System.out.println("");
+
+					interceptHistory.add(line);
 					System.out.println("Message from Alice: "+line);
+					if(!interceptHistory.isEmpty()) System.out.println("Interception history:");
+					for(int i=0; i<interceptHistory.size(); i++) {
+						System.out.println((i+1) +". "+interceptHistory.get(i));
+					}
 					if(line.equals("done")) {
 						finished = true;
 					}
@@ -86,8 +99,8 @@ public class Mallory {
 
 	public String modify(String s) {
 		
-		System.out.println("How should we modifie this message? : "+s);
-		System.out.println("Type 'send' to send, 'delete' to delete, 'modify' to modify");
+		System.out.println("How should we modifie this message?");
+		System.out.println("Type 'send' to send, 'delete' to delete, 'modify' to modify, 'replay' to replay previous interceptions");
 		
 		boolean validInput = false;
 		String input;
@@ -104,15 +117,43 @@ public class Mallory {
 				return null;
 			}
 			else if(input.compareTo("modify")==0) {
+				System.out.println("What should we send Bob instead?");
+				System.out.print("Type new message to send: ");
+				String modifiedMessage = console.nextLine();
 				validInput = true;
+				return modifiedMessage;
+			}
+			else if(input.compareTo("replay")==0) {
+				boolean validNumber = false;
+				int interceptNumber=-1;
+				System.out.println("Which of the preivous intercepts should we replay?");
+				while(!validNumber) {
+					System.out.print("Type the corresponding number: ");
+					String interceptNumberString = console.nextLine();
+					try {
+						interceptNumber = Integer.parseInt(interceptNumberString);
+					}
+					catch(NumberFormatException e){
+					}
+					
+					if(interceptNumber<=interceptHistory.size() && interceptNumber>0) {
+						validNumber = true;
+					}
+					else {
+						System.out.println("Wrong input. Please type a number within the range.");
+					}
+				}
+				
+				validInput = true;
+				
+				return interceptHistory.get(interceptNumber-1);
 			}
 			else {
 				System.out.println("Invalid input, please type another input");
 			}
 
 		}
-		
-		System.out.println("What should we send Bob?");
+		System.out.println("What should we send Bob instead?");
 		String modifiedMessage = console.nextLine();
 		return modifiedMessage;
 		
