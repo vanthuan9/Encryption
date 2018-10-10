@@ -6,23 +6,25 @@ import java.util.Scanner;
 
 public class Alice {
 	
+	//instance variables
 	private String alicePubKey;
 	private String alicePrivateKey;
 	private String bobPubKey;
 	private String malPort;
 	private String config;
 	
-	
 	public Alice(String alicePubKey, String alicePrivateKey, String bobPubKey, String malPort, String config) {
 
+		//initialize instance variables
 		this.alicePubKey = alicePubKey;
 		this.alicePrivateKey = alicePrivateKey;
 		this.bobPubKey = bobPubKey;
 		this.malPort = malPort;
 		this.config = config;
 		
-		System.out.println("This is Alice");
+		System.out.println("This is Alice"); //notify the identity of this server to the user
 		
+		//obtain Mallory's port number and connect to it
 		int malPortNumber = Integer.parseInt(malPort);
 		String serverAddress = "localhost";
 		try{
@@ -33,6 +35,8 @@ public class Alice {
 			Scanner console = new Scanner(System.in);
 			DataOutputStream streamOut = new DataOutputStream(malSocket.getOutputStream());
 			
+			//obtain the message from the user and send it to Mallory
+			//the communication ends when the user inputs "done"
 			String line = "";
 			while(!line.equals("done")) {
 				try
@@ -49,6 +53,7 @@ public class Alice {
 		         }
 			}
 			
+			//close all the sockets and console when the user is done communicating
 			console.close();
 			streamOut.close();
 			malSocket.close();
@@ -57,6 +62,8 @@ public class Alice {
 		}
 		catch(IOException e) {
 			//print error
+			System.out.println("Connection failed due to following reason");
+			System.out.println(e);
 		}
 	}
 
@@ -68,10 +75,10 @@ public class Alice {
 	 * args[4] ; program configuration
 	 */
 	public static void main(String[] args) {
-		// TODO Auto-generated method stub
-		//check for correct # of args
-		if(args.length != 5) System.out.println("incorrect number of arguments");
+		//check for correct # of parameters
+		if(args.length != 5) System.out.println("Incorrect number of parameters");
 		else {
+			//create Alice to start communication
 			Alice alice = new Alice(args[0], args[1], args[2], args[3], args[4]);
 		}
 
