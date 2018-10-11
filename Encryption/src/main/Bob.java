@@ -10,6 +10,9 @@ import java.security.Signature;
 import java.util.Base64;
 
 import javax.crypto.Cipher;
+import javax.crypto.Mac;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 
 public class Bob {
 	
@@ -20,6 +23,7 @@ public class Bob {
 	private String bobPort;
 	private String config;
 	private Base64.Decoder decoder = Base64.getDecoder();
+	private String MACKey;
 	
 	public Bob(String alicePubKeyFile, String bobPubKeyFile, String bobPrivateKeyFile, String bobPort, String config) throws Exception {
 		
@@ -62,22 +66,60 @@ public class Bob {
 			while(!finished) {
 				try {
 					String[] msgParts = streamIn.readUTF().split(", ");
+					String message = "";
 					System.out.println("Message from Mallory: "+ msgParts);
+					if(msgParts.length==2) {
+						Cipher cipher = Cipher.getInstance("RSA/None/OAEPWithSHA1AndMGF1Padding", "BC");
+						Signature signer = Signature.getInstance("SHA256withRSA");
+						
+						SecureRandom random = new SecureRandom();
+						cipher.init(Cipher.DECRYPT_MODE, bobPrivateKey, random);
+						byte[] messageBytes = cipher.doFinal(decoder.decode(msgParts[0]));
+						
+						
+						byte[] signedBytes = decoder.decode(msgParts[1]);
+						byte[] cipherBytes = decoder.decode(msgParts[0]);
+						MACKey = new String(messageBytes);
+						System.out.println("Message is " + new String(messageBytes));
+						System.out.println("Message is untampered with: " +  MySignature.verify(signer, alicePubKey, signedBytes, cipherBytes));
+						
+					}
+					//Encrypt and MAC
+					else if(msgParts.length==5) {
+						String MAC = msgParts[4];
+						
+						if(generateMAC(msgParts[0]+", "+msgParts[1]+", "+msgParts[2]+", "+msgParts[3]) == MAC) {
+							String decryptedMsg = decrypt(msgParts[3],msgParts[2]);
+							message = decryptedMsg;
+							System.out.println("Message from Bob: " +decryptedMsg);
+						}
+						else {
+							System.out.println("MAC doesn't correspond. Message has been tampered with");
+						}
+					}
+					//Encrypt only
+					else if(msgParts.length ==4) {
+						String decryptedMsg = decrypt(msgParts[3],msgParts[2]);
+						message = decryptedMsg;
+						System.out.println("Message from Bob: " +decryptedMsg);
+					}
+					//MAC only
+					else if(msgParts.length ==3) {
+						System.out.println("MACKEY: "+MACKey);
+						System.out.println(msgParts[0]+", "+msgParts[1]);
+						System.out.println(generateMAC(msgParts[0]+", "+msgParts[1]));
+						if(generateMAC(msgParts[0]+", "+msgParts[1]) == msgParts[2]) {
+							System.out.println("Message from Bob: "+msgParts[1]);
+							message = msgParts[1];
+						}
+						else {
+							System.out.println("MAC doesn't correspond. Message has been tampered with");
+						}
+					}
 					
-					Cipher cipher = Cipher.getInstance("RSA/None/OAEPWithSHA1AndMGF1Padding", "BC");
-					Signature signer = Signature.getInstance("SHA256withRSA");
-					
-					SecureRandom random = new SecureRandom();
-					cipher.init(Cipher.DECRYPT_MODE, bobPrivateKey, random);
-					byte[] messageBytes = cipher.doFinal(decoder.decode(msgParts[0]));
 					
 					
-					byte[] signedBytes = decoder.decode(msgParts[1]);
-					byte[] cipherBytes = decoder.decode(msgParts[0]);
-					System.out.println("Message is " + new String(messageBytes));
-					System.out.println("Message is untampered with: " +  MySignature.verify(signer, alicePubKey, signedBytes, cipherBytes));
-					
-					finished = msgParts[0].equals("done");
+					finished = message.equals("done");
 				}
 				catch(IOException ioe) {
 					//disconnect if there is an error reading the input from Mallory
@@ -96,6 +138,48 @@ public class Bob {
 			System.out.println(e);
 		}
 		
+	}
+	
+	public String decrypt(String encryptedText, String encodedKey) throws Exception {
+		Cipher cipher = Cipher.getInstance("AES");
+		// decode the base64 encoded string
+		byte[] decodedKey = Base64.getDecoder().decode(encodedKey);
+		// rebuild key using SecretKeySpec
+		SecretKey secretKey = new SecretKeySpec(decodedKey, 0, decodedKey.length, "AES");
+		Base64.Decoder decoder = Base64.getDecoder();
+		byte[] encryptedTextByte = decoder.decode(encryptedText);
+		cipher.init(Cipher.DECRYPT_MODE, secretKey);
+		byte[] decryptedByte = cipher.doFinal(encryptedTextByte);
+		String decryptedText = new String(decryptedByte);
+		return decryptedText;
+	}
+	
+	private String generateMAC(String originalText) throws Exception {
+		if(MACKey == null) {
+			System.out.println("Initialize MAC Key first.");
+			return null;
+		}
+	    
+	    // decode the base64 encoded string
+		byte[] decodedKey = Base64.getDecoder().decode(MACKey);
+		// rebuild key using SecretKeySpec
+		SecretKey secretKey = new SecretKeySpec(decodedKey, 0, decodedKey.length, "HmacSHA256");
+
+	    // create a MAC and initialize with the above key
+	    Mac mac = Mac.getInstance(secretKey.getAlgorithm());
+	    mac.init(secretKey);
+	    
+	    // get the string as UTF-8 bytes
+	    byte[] b = originalText.getBytes("UTF-8");
+	    
+	    // create a digest from the byte array
+	    byte[] digest = mac.doFinal(b);
+	    String MAC = Base64.getEncoder().encodeToString(digest);
+		return MAC;
+	}
+	
+	private void initializeMACKey(String MACKey) {
+		this.MACKey = MACKey;
 	}
 	
 	private static void resolveVersion(String version, boolean encrypt, boolean macs) {
