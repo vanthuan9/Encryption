@@ -6,6 +6,9 @@ import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.security.*;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
+
 import javax.crypto.*;
 
 
@@ -28,7 +31,7 @@ public class Gen {
 			e.printStackTrace();
 			System.out.println("Incorrect Key-Gen Algorithm was Provided");
 		}
-		generator.initialize(keySize);
+		generator.initialize(keySize, new SecureRandom());
 	}
 	
 	private KeyPair genKeyPair() {
@@ -51,21 +54,30 @@ public class Gen {
 
 		Gen myGen = new Gen(ALGORITHM, KEY_SIZE);
 		FileOutputStream writer;
-		
-		for(int i = 0; i < (EXPECTED_PARAM /2); i++) {
-			KeyPair keys = myGen.genKeyPair();
-			
-			try {
+		try {
+			for(int i = 0; i < (EXPECTED_PARAM /2); i++) {
+				KeyPair keys = myGen.genKeyPair();
+	
+				//KeyStore keyStore = KeyStore.getInstance("RSA");
 				writer = new FileOutputStream(new File(args[2*i]));
-				writer.write(keys.getPublic().getEncoded());
+				writer.write(Base64.getEncoder().encode(keys.getPublic().getEncoded()));
+				System.out.println(keys.getPublic());
+
+				
+				byte[] bytes = Base64.getEncoder().encode(keys.getPublic().getEncoded());
+				PublicKey retrieved = KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(Base64.getDecoder().decode(bytes)));
+				System.out.println(retrieved);
+				
+				
 				writer.close();
 				
 				writer = new FileOutputStream(new File(args[2*i+1]));
-				writer.write(keys.getPrivate().getEncoded());
+				writer.write(Base64.getEncoder().encode(keys.getPrivate().getEncoded()));
 				writer.close();
-			} catch (IOException e) {
-				e.printStackTrace();
+	
 			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 		System.out.println("Finished Writing Keys");
 	}
