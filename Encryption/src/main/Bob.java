@@ -27,6 +27,10 @@ public class Bob {
 	private String config;
 	private Base64.Decoder decoder = Base64.getDecoder();
 	private String MACKey;
+	private boolean mac=false;
+	private boolean encrypt=false;
+	private int counter = 0;
+	private boolean macSet = false;
 	
 	public Bob(String alicePubKeyFile, String bobPubKeyFile, String bobPrivateKeyFile, String bobPort, String config) throws Exception {
 		
@@ -36,16 +40,12 @@ public class Bob {
 		bobPrivateKey = KeyGetter.getPrivate(bobPrivateKeyFile);
 		this.bobPort = bobPort;
 		this.config = config;
+		resolveVersion(config);
 		
 		//notify the identity of the server to the user
 		System.out.println("This is Bob");
 		
-		//keep track of which countermeasure to employ; default if "No encryption"
-		boolean encrypt = false;
-		boolean macs = false;
-		
-		//Resolve the version
-		resolveVersion(config, encrypt, macs);
+		System.out.println("Enc on: "+ encrypt +", mac on: "+ mac);
 		
 		//attempt to create a server with the given port number
 		int portNumber = Integer.parseInt(bobPort);
@@ -70,54 +70,60 @@ public class Bob {
 				try {
 					String[] msgParts = streamIn.readUTF().split(", ");
 					String message = "";
-					System.out.println("Message from Mallory: "+ msgParts);
-					if(msgParts.length==2) {
+					if(msgParts.length==2 && !macSet) {
+						
+						macSet =true;
+						
 						Cipher cipher = Cipher.getInstance("RSA/None/OAEPWithSHA1AndMGF1Padding", "BC");
 						Signature signer = Signature.getInstance("SHA256withRSA");
 						
 						SecureRandom random = new SecureRandom();
 						cipher.init(Cipher.DECRYPT_MODE, bobPrivateKey, random);
 						byte[] messageBytes = cipher.doFinal(decoder.decode(msgParts[0]));
-						
-						
+												
 						byte[] signedBytes = decoder.decode(msgParts[1]);
 						byte[] cipherBytes = decoder.decode(msgParts[0]);
 						MACKey = new String(messageBytes);
-						System.out.println("Message is " + new String(messageBytes));
-						System.out.println("Message is untampered with: " +  MySignature.verify(signer, alicePubKey, signedBytes, cipherBytes));
+						System.out.println("MAC key received from Alice is: " + new String(messageBytes));
+						System.out.println("MAC key is untampered with: " +  MySignature.verify(signer, alicePubKey, signedBytes, cipherBytes));
 						
 					}
 					//Encrypt and MAC
-					else if(msgParts.length==5) {
+					else if(msgParts.length==5 && mac&&encrypt) {
 						String MAC = msgParts[4];
 						
 						if(generateMAC(msgParts[0]+", "+msgParts[1]+", "+msgParts[2]+", "+msgParts[3]).compareTo(MAC)==0) {
 							String decryptedMsg = decrypt(msgParts[3],decryptRSA(msgParts[2]));
 							message = decryptedMsg;
-							System.out.println("Message from Bob: " +decryptedMsg);
+							System.out.println("Message from Alice: " +decryptedMsg);
 						}
 						else {
 							System.out.println("MAC doesn't correspond. Message has been tampered with");
 						}
 					}
 					//Encrypt only
-					else if(msgParts.length ==4) {
+					else if(msgParts.length ==4&& !mac&&encrypt) {
 						String decryptedMsg = decrypt(msgParts[3],decryptRSA(msgParts[2]));
 						message = decryptedMsg;
-						System.out.println("Message from Bob: " +decryptedMsg);
+						System.out.println("Message from Alice: " +decryptedMsg);
 					}
 					//MAC only
-					else if(msgParts.length ==3) {
+					else if(msgParts.length ==3 && mac&&!encrypt) {
 						if(generateMAC(msgParts[0]+", "+msgParts[1]).compareTo(msgParts[2]) == 0) {
 							System.out.println("Message from Alice: "+msgParts[1]);
 							message = msgParts[1];
 						}
 						else {
+							
 							System.out.println("MAC doesn't correspond. Message has been tampered with");
 						}
 					}
-					
-					
+					else if(!mac&&!encrypt) {
+						System.out.println("Message from Alice: "+msgParts);
+					}
+					else {
+						System.out.println("Somebody tempered with the message");
+					}
 					
 					finished = message.equals("done");
 				}
@@ -192,19 +198,20 @@ public class Bob {
 		this.MACKey = MACKey;
 	}
 	
-	private static void resolveVersion(String version, boolean encrypt, boolean macs) {
-		if (version == "noCrypt") {
+	private void resolveVersion(String version) {
+		if (version.compareTo("noCrypt")==0) {
 			//do nothing because this is the default version
 		} else if (version == "encOnly") {
 			encrypt = true;
-		} else if (version == "macOnly") {
-			macs = true;
-		} else if (version == "mac&Enc") {
+		} else if (version.compareTo("macOnly")==0) {
+			mac = true;
+		} else if (version.compareTo("mac&Enc")==0) {
 			encrypt = true;
-			macs = true;
+			mac = true;
 		} else {
 			//Throw exception here for unsupported version
 			//remember to try-catch resolveVersion
+			System.out.println("Incorrect configuration. Running as No Crypto mode");
 		}
 	}
 	

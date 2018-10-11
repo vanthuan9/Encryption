@@ -24,7 +24,7 @@ public class Alice {
 	private String malPort;
 	private String config;
 	private String MACKey;
-	private boolean MAC=false;
+	private boolean mac=false;
 	private boolean encrypt=false;
 	private int counter = 0;
 
@@ -64,7 +64,6 @@ public class Alice {
 		String sessionKey = Base64.getEncoder().encodeToString(cipher.doFinal(aesKey.getBytes("UTF-8")));
 		
 		counter++;
-		System.out.println("session key: "+sessionKey);
 		
 		return ("Bob, "+counter+", "+sessionKey +", "+ encryptedMsg);
 	}
@@ -140,6 +139,23 @@ public class Alice {
 	    SecretKey key = keyGen.generateKey();
 	    MACKey = Base64.getEncoder().encodeToString(key.getEncoded());
 	}
+	
+	private void resolveVersion(String version) {
+		if (version.compareTo("noCrypt")==0) {
+			//do nothing because this is the default version
+		} else if (version == "encOnly") {
+			encrypt = true;
+		} else if (version.compareTo("macOnly")==0) {
+			mac = true;
+		} else if (version.compareTo("mac&Enc")==0) {
+			encrypt = true;
+			mac = true;
+		} else {
+			//Throw exception here for unsupported version
+			//remember to try-catch resolveVersion
+			System.out.println("Incorrect configuration. Running as No Crypto mode");
+		}
+	}
 
 	public Alice(String alicePubKeyFile, String alicePrivateKeyFile, 
 			String bobPubKeyFile, String malPort, String config) throws Exception {
@@ -148,51 +164,15 @@ public class Alice {
 	    alicePrivateKey = KeyGetter.getPrivate(alicePrivateKeyFile);
 	    bobPubKey = KeyGetter.getPublic(bobPubKeyFile);		    
 
-	    
+	    resolveVersion(config);
 	    
 		this.malPort = malPort;
 		this.config = config;
 		Scanner console = new Scanner(System.in);
 		System.out.println("This is Alice"); //notify the identity of this server to the user
-		System.out.println("Should I encrypt the message?");
-		System.out.println("Type yes or no");
-		boolean validSetup = false;
-		String input = "";
-		while(!validSetup) {
-			input = console.nextLine();
-			if(input.compareTo("yes")==0) {
-				encrypt = true;
-				validSetup = true;
-			}
-			else if(input.compareTo("no")==0){
-				encrypt = false;
-				validSetup = true;
-			}
-			else {
-				System.out.println("Please type either 'yes' or 'no'");
-			}
-		}
-		validSetup = false;
-		
-		System.out.println("Should I add MAC to the message?");
-		System.out.println("Type yes or no");
-		while(!validSetup) {
-			input = console.nextLine();
-			if(input.compareTo("yes")==0) {
-				MAC = true;
-				//initializes MAC key
-			    initializeMACKey();
-			    System.out.println(MACKey);
-			    System.out.println("hi there MAC: "+generateMAC("hi there"));
-				validSetup = true;
-			}
-			else if(input.compareTo("no")==0){
-				MAC = false;
-				validSetup = true;
-			}
-			else {
-				System.out.println("Please type either 'yes' or 'no'");
-			}
+
+		if(mac) {
+			initializeMACKey();
 		}
 		//obtain Mallory's port number and connect to it
 		int malPortNumber = Integer.parseInt(malPort);
@@ -205,7 +185,7 @@ public class Alice {
 			
 			DataOutputStream streamOut = new DataOutputStream(malSocket.getOutputStream());
 			
-			if(MAC) {
+			if(mac) {
 				//Exchange mac key with Bob and initiates the conversation
 				streamOut.writeUTF(new String(macExchangeMsg()));
 				streamOut.flush();
@@ -220,12 +200,12 @@ public class Alice {
 		         {  System.out.print("Type message: ");
 					line = console.nextLine();
 					
-					if(MAC&&encrypt) {
+					if(mac&&encrypt) {
 						streamOut.writeUTF(exchangeMsgWithEncAndMAC(line));
 			            streamOut.flush();
 			            System.out.println("Message sent");
 					}
-					else if(MAC) {
+					else if(mac) {
 						streamOut.writeUTF(exchangeMsgWithMAC(line));
 			            streamOut.flush();
 			            System.out.println("Message sent");
