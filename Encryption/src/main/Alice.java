@@ -64,6 +64,7 @@ public class Alice {
 		String sessionKey = Base64.getEncoder().encodeToString(cipher.doFinal(aesKey.getBytes("UTF-8")));
 		
 		counter++;
+		System.out.println("session key: "+sessionKey);
 		
 		return ("Bob, "+counter+", "+sessionKey +", "+ encryptedMsg);
 	}
@@ -182,6 +183,7 @@ public class Alice {
 				//initializes MAC key
 			    initializeMACKey();
 			    System.out.println(MACKey);
+			    System.out.println("hi there MAC: "+generateMAC("hi there"));
 				validSetup = true;
 			}
 			else if(input.compareTo("no")==0){

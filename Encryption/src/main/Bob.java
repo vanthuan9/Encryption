@@ -2,6 +2,8 @@ package main;
 
 import java.io.*;
 import java.net.*;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
@@ -11,6 +13,7 @@ import java.util.Base64;
 
 import javax.crypto.Cipher;
 import javax.crypto.Mac;
+import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -88,8 +91,8 @@ public class Bob {
 					else if(msgParts.length==5) {
 						String MAC = msgParts[4];
 						
-						if(generateMAC(msgParts[0]+", "+msgParts[1]+", "+msgParts[2]+", "+msgParts[3]) == MAC) {
-							String decryptedMsg = decrypt(msgParts[3],msgParts[2]);
+						if(generateMAC(msgParts[0]+", "+msgParts[1]+", "+msgParts[2]+", "+msgParts[3]).compareTo(MAC)==0) {
+							String decryptedMsg = decrypt(msgParts[3],decryptRSA(msgParts[2]));
 							message = decryptedMsg;
 							System.out.println("Message from Bob: " +decryptedMsg);
 						}
@@ -99,17 +102,14 @@ public class Bob {
 					}
 					//Encrypt only
 					else if(msgParts.length ==4) {
-						String decryptedMsg = decrypt(msgParts[3],msgParts[2]);
+						String decryptedMsg = decrypt(msgParts[3],decryptRSA(msgParts[2]));
 						message = decryptedMsg;
 						System.out.println("Message from Bob: " +decryptedMsg);
 					}
 					//MAC only
 					else if(msgParts.length ==3) {
-						System.out.println("MACKEY: "+MACKey);
-						System.out.println(msgParts[0]+", "+msgParts[1]);
-						System.out.println(generateMAC(msgParts[0]+", "+msgParts[1]));
-						if(generateMAC(msgParts[0]+", "+msgParts[1]) == msgParts[2]) {
-							System.out.println("Message from Bob: "+msgParts[1]);
+						if(generateMAC(msgParts[0]+", "+msgParts[1]).compareTo(msgParts[2]) == 0) {
+							System.out.println("Message from Alice: "+msgParts[1]);
 							message = msgParts[1];
 						}
 						else {
@@ -139,7 +139,17 @@ public class Bob {
 		}
 		
 	}
-	
+	public String decryptRSA(String rsaEncTex) throws Exception {
+		Cipher cipher = Cipher.getInstance("RSA/None/OAEPWithSHA1AndMGF1Padding", "BC");
+		
+		SecureRandom random = new SecureRandom();
+		cipher.init(Cipher.DECRYPT_MODE, bobPrivateKey, random);
+		byte[] messageBytes = cipher.doFinal(decoder.decode(rsaEncTex));
+
+		String message = new String(messageBytes);
+		
+		return message;
+	}
 	public String decrypt(String encryptedText, String encodedKey) throws Exception {
 		Cipher cipher = Cipher.getInstance("AES");
 		// decode the base64 encoded string
@@ -183,13 +193,13 @@ public class Bob {
 	}
 	
 	private static void resolveVersion(String version, boolean encrypt, boolean macs) {
-		if (version == "No cryptography") {
+		if (version == "noCrypt") {
 			//do nothing because this is the default version
-		} else if (version == "Symmetric encryption only") {
+		} else if (version == "encOnly") {
 			encrypt = true;
-		} else if (version == "MACs only") {
+		} else if (version == "macOnly") {
 			macs = true;
-		} else if (version == "Symmetric encryption then MAC") {
+		} else if (version == "mac&Enc") {
 			encrypt = true;
 			macs = true;
 		} else {
