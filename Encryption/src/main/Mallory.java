@@ -4,7 +4,7 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
-public class Mallory {
+public class Mallory extends Actor {
 
 	//instance variables
 	private Scanner console = new Scanner(System.in);
@@ -12,9 +12,6 @@ public class Mallory {
 	private ServerSocket malloryServer;
 	private String alicePubKey;
 	private String bobPubKey;
-	private String malPort;
-	private String bobPort;
-	private String config;
 	
 	//list of previous intercepts
 	private List<String> interceptHistory;
@@ -24,9 +21,8 @@ public class Mallory {
 		//initialize instance variables
 		this.alicePubKey = alicePubKey;
 		this.bobPubKey = bobPubKey;
-		this.malPort = malPort;
-		this.bobPort = bobPort;
-		this.config = config;
+
+		resolveConfig(config);
 		
 		interceptHistory = new ArrayList<String>();
 		
@@ -81,7 +77,7 @@ public class Mallory {
 						if(messageToSend!=null) {
 							streamOut.writeUTF(messageToSend);
 							streamOut.flush();
-							System.out.println("Message sent to Bob");
+							System.out.println("Message sent to Bob: " + messageToSend);
 						}
 					}
 				}
@@ -132,7 +128,6 @@ public class Mallory {
 			
 			//if the user simply wants to send the message, send the message
 			if(input.compareTo("send")==0) {
-				validInput = true;
 				return s;
 			}
 			//if the user wants to delete the message, return null value
