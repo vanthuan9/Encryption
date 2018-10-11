@@ -2,22 +2,31 @@ package main;
 
 import java.io.*;
 import java.net.*;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.SecureRandom;
+import java.security.Security;
+import java.security.Signature;
+import java.util.Base64;
+
+import javax.crypto.Cipher;
 
 public class Bob {
 	
 	//instance variables
-	private String alicePubKey;
-	private String bobPubKey;
-	private String bobPrivateKey;
+	private PublicKey alicePubKey;
+	private PublicKey bobPubKey;
+	private PrivateKey bobPrivateKey;
 	private String bobPort;
 	private String config;
+	private Base64.Decoder decoder = Base64.getDecoder();
 	
-	public Bob(String alicePubKey, String bobPubKey, String bobPrivateKey, String bobPort, String config) {
+	public Bob(String alicePubKeyFile, String bobPubKeyFile, String bobPrivateKeyFile, String bobPort, String config) throws Exception {
 		
 		//initialize instance variables
-		this.alicePubKey = alicePubKey;
-		this.bobPubKey = bobPubKey;
-		this.bobPrivateKey = bobPrivateKey;
+		alicePubKey = KeyGetter.getPublic(alicePubKeyFile);
+		bobPubKey = KeyGetter.getPublic(bobPubKeyFile);
+		bobPrivateKey = KeyGetter.getPrivate(bobPrivateKeyFile);
 		this.bobPort = bobPort;
 		this.config = config;
 		
@@ -43,14 +52,32 @@ public class Bob {
 			System.out.println("Client connected");
 			DataInputStream streamIn = new DataInputStream(new BufferedInputStream(clientSocket.getInputStream()));
 			
+			//Get the key exchange
+			//String keyExchange = getKeyExchange(streamIn.readUTF().getBytes());
+			
+			
 			boolean finished = false;
 			
 			//read input from Mallory
 			while(!finished) {
 				try {
-					String line = streamIn.readUTF();
-					System.out.println("Message from Mallory: "+line);
-					finished = line.equals("done");
+					String[] msgParts = streamIn.readUTF().split(", ");
+					System.out.println("Message from Mallory: "+ msgParts);
+					
+					Cipher cipher = Cipher.getInstance("RSA/None/OAEPWithSHA1AndMGF1Padding", "BC");
+					Signature signer = Signature.getInstance("SHA256withRSA");
+					
+					SecureRandom random = new SecureRandom();
+					cipher.init(Cipher.DECRYPT_MODE, bobPrivateKey, random);
+					byte[] messageBytes = cipher.doFinal(decoder.decode(msgParts[0]));
+					
+					
+					byte[] signedBytes = decoder.decode(msgParts[1]);
+					byte[] cipherBytes = decoder.decode(msgParts[0]);
+					System.out.println("Message is " + new String(messageBytes));
+					System.out.println("Message is untampered with: " +  MySignature.verify(signer, alicePubKey, signedBytes, cipherBytes));
+					
+					finished = msgParts[0].equals("done");
 				}
 				catch(IOException ioe) {
 					//disconnect if there is an error reading the input from Mallory
@@ -102,8 +129,15 @@ public class Bob {
 			return;
 		}
 		
+		Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+		
 		//create Bob
-		Bob bob = new Bob(args[0], args[1], args[2], args[3], args[4]);		
+		try {
+			Bob bob = new Bob(args[0], args[1], args[2], args[3], args[4]);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}		
 	}
 
 }
