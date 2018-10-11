@@ -4,7 +4,13 @@ Gen:
 -javax.crypto.KeyGenerator(BlockEncryption)
 -java.security.KeyPairGenerator(Public Key)
 
+-For hostName, use 'localhost' since the servers are running on
+the same machine
+
 Bob:
+java -cp ~/home/tnguyen/Documents/GitHub/Encryption/Encryption/src/main Bob
+-Able to remember which version programmer picked
+    Function that maps each version to a number?
 -Takes an encrypted msg, decrypts it, and displays it.
 -Checks for traces of Mallory
 
@@ -23,3 +29,26 @@ Mallory:
 
 -MACs Only: displays both plain text and tag
 -Both: displays both cipher text and tag
+
+
+Todo:
+-Mallory choice to modify or delete
+-Allow multiple messages(until stop msg); Connecting 3 servers
+-Crypto stuff?
+
+No Encryption:
+  no key exchange
+  just send plain text
+  
+  
+Encryption:
+  no mac
+  each message contains: Bob, typeOfMsg, session#, Enc(K_AB; K_B), Enc(m; K_AB)
+  
+Mac only:
+  mac exchange: B, typeOfMsg, session#, Enc(K_MAC, K_B), Enc(B, typeOfMsg, session#, Enc(K_MAC, K_B); K_A)
+  each message contains: Bob, typeOfMsg, session#, m, Mac(Bob, typeOfMsg, session#, m)
+  
+Both:
+  share mac key; sign it with Alice's RSA
+  each message contains: Bob, typeOfMsg, session#, Enc(K_AB; K_B), Enc(m; K_AB), Mac(Bob, typeOfMsg, session#, Enc(K_AB; K_B), Enc(m; K_AB); K_MAC)
