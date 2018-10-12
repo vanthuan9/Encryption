@@ -74,28 +74,6 @@ public class Alice extends Actor {
 		            streamOut.flush();
 		            System.out.println("Message sent");
 					
-					
-//					if(macs&&encrypt) {
-//						streamOut.writeUTF(exchangeMsgWithEncAndMAC(line));
-//			            streamOut.flush();
-//			            System.out.println("Message sent");
-//					}
-//					else if(macs) {
-//						streamOut.writeUTF(exchangeMsgWithMAC(line));
-//			            streamOut.flush();
-//			            System.out.println("Message sent");
-//					}
-//					else if(encrypt) {
-//						streamOut.writeUTF(exchangeMsgWithEnc(line));
-//			            streamOut.flush();
-//			            System.out.println("Message sent");
-//					}
-//					else {
-//						streamOut.writeUTF(line);
-//			            streamOut.flush();
-//			            System.out.println("Message sent");
-//					}
-//		            
 		         } catch(IOException ioe) {  
 		        	 System.out.println("Sending error: " + ioe.getMessage());
 		         }
@@ -141,7 +119,7 @@ public class Alice extends Actor {
 	}
 	
 	private void initializeMACKey() throws NoSuchAlgorithmException {
-		// get a key generator for the HMAC-MD5 keyed-hashing algorithm
+		// get a key generator for the HMAC-SHA256 keyed-hashing algorithm
 	    KeyGenerator keyGen = KeyGenerator.getInstance("HmacSHA256");
 	    keyGen.init(new SecureRandom());
 	    
@@ -197,41 +175,6 @@ public class Alice extends Actor {
 		
 		return acc.toString();
 	}
-	
-//	private String exchangeMsgWithEnc(String message) throws Exception {
-//		String aesKey = generateAESKey();
-//		
-//		String encryptedMsg = encryptMsg(message, aesKey);
-//		
-//		Cipher cipher = Cipher.getInstance("RSA/None/OAEPWithSHA1AndMGF1Padding", "BC");
-//			
-//		//Implements PCKS 1.5 signature; assumes that oracle attack has been screened for
-//		Signature signer = Signature.getInstance("SHA256withRSA");
-//			
-//		SecureRandom random = new SecureRandom();
-//		cipher.init(Cipher.ENCRYPT_MODE, bobPubKey, random);
-//			
-//		String sessionKey = encoder.encodeToString(cipher.doFinal(aesKey.getBytes("UTF-8")));
-//		
-//		counter++;
-//		
-//		return ("Bob, "+counter+", "+sessionKey +", "+ encryptedMsg);
-//	}
-	
-//	private String exchangeMsgWithMAC(String message) throws Exception {
-//		counter++;
-//		String newMessage = counter+", "+message;
-//		String MAC = generateMAC(newMessage);
-//		return newMessage+", "+MAC;
-//	}
-//	
-//	private String exchangeMsgWithEncAndMAC(String message) throws Exception {
-//		String encryptedMsg = exchangeMsgWithEnc(message);
-//		
-//		String MAC = generateMAC(encryptedMsg);
-//		
-//		return encryptedMsg+", " +MAC;
-//	}
 	
 	private String generateAESKey() throws NoSuchAlgorithmException {
 		KeyGenerator keyGenerator = KeyGenerator.getInstance("AES");

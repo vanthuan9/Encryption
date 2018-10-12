@@ -19,6 +19,7 @@ Go to your Java Package in Eclipse and select 'Build Path' > 'Configure Build Pa
 
 Experiment 1: No encryption
 1. Start a new terminal window, navigate to where .jar files are located
+//Step 2 is unnecessary if the keys have been generated
 2. input: java -jar Gen.jar APublicKey.pem APrivateKey.pem BPublicKey.pem BPrivateKey.pem
 3. input: java -jar Bob.jar APublicKey.pem BPublicKey.pem BPrivateKey.pem 2001 noCrypt
 4. Start another terminal window, navigate to .jar files
@@ -54,6 +55,7 @@ Experiment 1: No encryption
 
 Experiment 2: Encryption Only
 1. Start a new terminal window, navigate to where .jar files are located
+//Step 2 is unnecessary if the keys have been generated
 2. input: java -jar Gen.jar APublicKey.pem APrivateKey.pem BPublicKey.pem BPrivateKey.pem
 3. input: java -jar Bob.jar APublicKey.pem BPublicKey.pem BPrivateKey.pem 2001 encOnly
 4. Start another terminal window, navigate to .jar files
@@ -77,6 +79,7 @@ Experiment 2: Encryption Only
 
 Experiment 3: Mac Only
 1. Start a new terminal window, navigate to where .jar files are located
+//Step 2 is unnecessary if the keys have been generated
 2. input: java -jar Gen.jar APublicKey.pem APrivateKey.pem BPublicKey.pem BPrivateKey.pem
 3. input: java -jar Bob.jar APublicKey.pem BPublicKey.pem BPrivateKey.pem 2001 macOnly
 4. Start another terminal window, navigate to .jar files
@@ -113,12 +116,13 @@ Experiment 3: Mac Only
 14. input: delete //the first message
 15. input: send
 
-//Bob will receive the message, but will also recognize the replay attack
+//Bob will receive the message, but will also recognize that the counter is off
 
 -----------------------------------------------
 
 Experiment 4: Enc-then-Mac
 1. Start a new terminal window, navigate to where .jar files are located
+//Step 2 is unnecessary if the keys have been generated
 2. input: java -jar Gen.jar APublicKey.pem APrivateKey.pem BPublicKey.pem BPrivateKey.pem
 3. input: java -jar Bob.jar APublicKey.pem BPublicKey.pem BPrivateKey.pem 2001 macWEnc
 4. Start another terminal window, navigate to .jar files
