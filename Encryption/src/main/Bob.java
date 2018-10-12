@@ -129,7 +129,11 @@ public class Bob extends Actor {
 					//MAC only
 					else if(msgParts.length == 6 && macs&&!encrypt) {
 						if(generateMAC(extractSignedMsg(msgParts)).compareTo(msgParts[5]) == 0) {
-							System.out.println("Message from Alice: "+msgParts[4]);
+							if (verifyCounter(msgParts)) {
+								System.out.println("Message from Alice: "+msgParts[4]);
+							} else {
+								System.out.println("Counter is off, Mallory has tampered with this and/or previous message(s)");
+							}
 						}
 						else {
 							
