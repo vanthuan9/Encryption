@@ -83,6 +83,7 @@ public class Bob extends Actor {
 				} else {
 					System.out.println("MAC key has been tampered with by Mallory!");
 				}
+				counter++;
 			}
 			
 			boolean finished = false;
@@ -112,6 +113,7 @@ public class Bob extends Actor {
 						else {
 							System.out.println("MAC doesn't correspond. Message has been tampered with");
 						}
+						counter++;
 					}
 					//Encrypt only
 					else if(msgParts.length == 6 && !macs && encrypt) {
@@ -123,6 +125,7 @@ public class Bob extends Actor {
 						else {
 							System.out.println("Counter is off, Mallory has tampered with this and/or previous message(s)");
 						}
+						counter++;
 
 					}
 					//MAC only
@@ -135,9 +138,10 @@ public class Bob extends Actor {
 							}
 						}
 						else {
-							
 							System.out.println("MAC doesn't correspond. Message has been tampered with");
 						}
+						counter++;
+						
 					} 
 					else if(msgParts.length == 5 && !macs&&!encrypt) {
 						if (verifyCounter(msgParts)) {
@@ -145,11 +149,12 @@ public class Bob extends Actor {
 						} else {
 							System.out.println("Counter is off, Mallory has tampered with this and/or previous message(s)");
 						}
+						counter++;
 					} else {
 						System.out.println("Incorrect message format, Mallory has tampered with this message.");
 					}
 				 
-					counter++;
+
 				
 					finished = message.equals("done");
 				}
