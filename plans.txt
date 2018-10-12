@@ -39,16 +39,15 @@ Todo:
 No Encryption:
   no key exchange
   just send plain text
-  
-  
+
 Encryption:
   no mac
   each message contains: Bob, typeOfMsg, session#, Enc(K_AB; K_B), Enc(m; K_AB)
-  
+
 Mac only:
   mac exchange: B, typeOfMsg, session#, Enc(K_MAC, K_B), Enc(B, typeOfMsg, session#, Enc(K_MAC, K_B); K_A)
   each message contains: Bob, typeOfMsg, session#, m, Mac(Bob, typeOfMsg, session#, m)
-  
+
 Both:
   share mac key; sign it with Alice's RSA
   each message contains: Bob, typeOfMsg, session#, Enc(K_AB; K_B), Enc(m; K_AB), Mac(Bob, typeOfMsg, session#, Enc(K_AB; K_B), Enc(m; K_AB); K_MAC)

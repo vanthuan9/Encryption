@@ -24,7 +24,9 @@ public class Alice extends Actor {
 	
 	private String MACKey;
 	private int counter = 0;
-
+	
+	private Cipher keyEncrypter;
+	
 	public Alice(String alicePubKeyFile, String alicePrivateKeyFile, 
 			String bobPubKeyFile, String malPort, String config) throws Exception {
 		
@@ -51,9 +53,10 @@ public class Alice extends Actor {
 			
 			DataOutputStream streamOut = new DataOutputStream(malSocket.getOutputStream());
 			
+			initialize();
+			
 			if(macs) {
 				//Exchange mac key with Bob and initiates the conversation
-				initializeMACKey();
 				streamOut.writeUTF(new String(macKeyExchangeMsg()));
 				streamOut.flush();
 			}
@@ -62,34 +65,38 @@ public class Alice extends Actor {
 			//the communication ends when the user inputs "done"
 			String line = "";
 			while(!line.equals("done")) {
-				try
-		         {  System.out.print("Type message: ");
+				try {  
+					System.out.print("Type message: ");
 					line = console.nextLine();
 					
-					if(macs&&encrypt) {
-						streamOut.writeUTF(exchangeMsgWithEncAndMAC(line));
-			            streamOut.flush();
-			            System.out.println("Message sent");
-					}
-					else if(macs) {
-						streamOut.writeUTF(exchangeMsgWithMAC(line));
-			            streamOut.flush();
-			            System.out.println("Message sent");
-					}
-					else if(encrypt) {
-						streamOut.writeUTF(exchangeMsgWithEnc(line));
-			            streamOut.flush();
-			            System.out.println("Message sent");
-					}
-					else {
-						streamOut.writeUTF(line);
-			            streamOut.flush();
-			            System.out.println("Message sent");
-					}
-		            
-		         }
-		         catch(IOException ioe)
-		         {  
+					String packagedMsg = packageMessage(line);
+					streamOut.writeUTF(packagedMsg);
+		            streamOut.flush();
+		            System.out.println("Message sent");
+					
+					
+//					if(macs&&encrypt) {
+//						streamOut.writeUTF(exchangeMsgWithEncAndMAC(line));
+//			            streamOut.flush();
+//			            System.out.println("Message sent");
+//					}
+//					else if(macs) {
+//						streamOut.writeUTF(exchangeMsgWithMAC(line));
+//			            streamOut.flush();
+//			            System.out.println("Message sent");
+//					}
+//					else if(encrypt) {
+//						streamOut.writeUTF(exchangeMsgWithEnc(line));
+//			            streamOut.flush();
+//			            System.out.println("Message sent");
+//					}
+//					else {
+//						streamOut.writeUTF(line);
+//			            streamOut.flush();
+//			            System.out.println("Message sent");
+//					}
+//		            
+		         } catch(IOException ioe) {  
 		        	 System.out.println("Sending error: " + ioe.getMessage());
 		         }
 			}
@@ -108,13 +115,20 @@ public class Alice extends Actor {
 		}
 	}
 	
+	private void initialize() throws Exception {
+		keyEncrypter = Cipher.getInstance("RSA/None/OAEPWithSHA1AndMGF1Padding", "BC");
+		keyEncrypter.init(Cipher.ENCRYPT_MODE, bobPubKey, new SecureRandom());
+		
+		if (macs) {
+			initializeMACKey();
+		} 
+	}
+	
 	private String macKeyExchangeMsg() 
 		throws GeneralSecurityException, UnsupportedEncodingException {
-		Cipher cipher = Cipher.getInstance("RSA/None/OAEPWithSHA1AndMGF1Padding", "BC");
-		cipher.init(Cipher.ENCRYPT_MODE, bobPubKey, new SecureRandom());
-
-		String cipherKey = encoder.encodeToString(cipher.doFinal(MACKey.getBytes("UTF-8")));
-		String msg = newMessage("Bob", "MacExchange") + ", " + cipherKey;
+		
+		String cipherKey = encoder.encodeToString(keyEncrypter.doFinal(MACKey.getBytes("UTF-8")));
+		String msg = newMessage("MacExchange") + ", " + cipherKey;
 		
 		//Implements PCKS 1.5 signature; assumes that oracle attack has been screened for
 		Signature signer = Signature.getInstance("SHA256withRSA");
@@ -137,46 +151,87 @@ public class Alice extends Actor {
 	}
 	
 	//Returns the parts of every message save the string the user wrote
-	private String newMessage(String receiver, String typeOfMsg) {
-		counter++;
-		return (receiver + ", " + typeOfMsg + ", " + (counter - 1) + 
-					", " + System.currentTimeMillis());
+	private String newMessage(String typeOfMsg) {
+		StringBuilder acc = new StringBuilder();
+		
+		//Bob is the default msg receiver, though this can be changed to a parameter
+		acc.append("Bob, ");
+
+		acc.append(typeOfMsg);
+		acc.append(", ");
+		
+		acc.append(counter);
+		acc.append(", ");
+		
+		acc.append(System.currentTimeMillis());
+		
+		counter++;		
+		return acc.toString();
 	}
 	
-	private String exchangeMsgWithEnc(String message) throws Exception {
-		String aesKey = generateAESKey();
-		
-		String encryptedMsg = encryptMsg(message, aesKey);
-		
-		Cipher cipher = Cipher.getInstance("RSA/None/OAEPWithSHA1AndMGF1Padding", "BC");
+	private String packageMessage(String message) throws Exception {
+		StringBuilder acc = new StringBuilder();
+		acc.append(newMessage("NewMessage"));
+
+		if(encrypt) {
+			//Generate new session key
+			String aesKey = generateAESKey();
+			String encryptedKey = encoder.encodeToString(keyEncrypter.doFinal(aesKey.getBytes("UTF-8")));
+			String encryptedMsg = encryptMsg(message, aesKey); //Check this method
 			
-		//Implements PCKS 1.5 signature; assumes that oracle attack has been screened for
-		Signature signer = Signature.getInstance("SHA256withRSA");
+			acc.append(", ");
+			acc.append(encryptedKey);
 			
-		SecureRandom random = new SecureRandom();
-		cipher.init(Cipher.ENCRYPT_MODE, bobPubKey, random);
-			
-		String sessionKey = encoder.encodeToString(cipher.doFinal(aesKey.getBytes("UTF-8")));
+			acc.append(", ");
+			acc.append(encryptedMsg);
+		} else {
+			acc.append(", ");
+			acc.append(message);
+		}
 		
-		counter++;
+		if(macs) {
+			String hashedMsg = generateMAC(acc.toString());
+			acc.append(", ");
+			acc.append(hashedMsg);
+		}
 		
-		return ("Bob, "+counter+", "+sessionKey +", "+ encryptedMsg);
+		return acc.toString();
 	}
 	
-	private String exchangeMsgWithMAC(String message) throws Exception {
-		counter++;
-		String newMessage = counter+", "+message;
-		String MAC = generateMAC(newMessage);
-		return newMessage+", "+MAC;
-	}
+//	private String exchangeMsgWithEnc(String message) throws Exception {
+//		String aesKey = generateAESKey();
+//		
+//		String encryptedMsg = encryptMsg(message, aesKey);
+//		
+//		Cipher cipher = Cipher.getInstance("RSA/None/OAEPWithSHA1AndMGF1Padding", "BC");
+//			
+//		//Implements PCKS 1.5 signature; assumes that oracle attack has been screened for
+//		Signature signer = Signature.getInstance("SHA256withRSA");
+//			
+//		SecureRandom random = new SecureRandom();
+//		cipher.init(Cipher.ENCRYPT_MODE, bobPubKey, random);
+//			
+//		String sessionKey = encoder.encodeToString(cipher.doFinal(aesKey.getBytes("UTF-8")));
+//		
+//		counter++;
+//		
+//		return ("Bob, "+counter+", "+sessionKey +", "+ encryptedMsg);
+//	}
 	
-	private String exchangeMsgWithEncAndMAC(String message) throws Exception {
-		String encryptedMsg = exchangeMsgWithEnc(message);
-		
-		String MAC = generateMAC(encryptedMsg);
-		
-		return encryptedMsg+", " +MAC;
-	}
+//	private String exchangeMsgWithMAC(String message) throws Exception {
+//		counter++;
+//		String newMessage = counter+", "+message;
+//		String MAC = generateMAC(newMessage);
+//		return newMessage+", "+MAC;
+//	}
+//	
+//	private String exchangeMsgWithEncAndMAC(String message) throws Exception {
+//		String encryptedMsg = exchangeMsgWithEnc(message);
+//		
+//		String MAC = generateMAC(encryptedMsg);
+//		
+//		return encryptedMsg+", " +MAC;
+//	}
 	
 	private String generateAESKey() throws NoSuchAlgorithmException {
 		KeyGenerator keyGenerator = KeyGenerator.getInstance("AES");
@@ -193,7 +248,7 @@ public class Alice extends Actor {
 		byte[] decodedKey = decoder.decode(AESKey);
 		// rebuild key using SecretKeySpec
 		SecretKey secretKey = new SecretKeySpec(decodedKey, 0, decodedKey.length, "AES");
-		byte[] plainTextByte = originalText.getBytes();
+		byte[] plainTextByte = originalText.getBytes("UTF-8");
 		cipher.init(Cipher.ENCRYPT_MODE, secretKey);
 		byte[] encryptedByte = cipher.doFinal(plainTextByte);
 		String encryptedText = encoder.encodeToString(encryptedByte);
@@ -207,7 +262,7 @@ public class Alice extends Actor {
 		}
 	    
 	    // decode the base64 encoded string
-		byte[] decodedKey = Base64.getDecoder().decode(MACKey);
+		byte[] decodedKey = decoder.decode(MACKey);
 		// rebuild key using SecretKeySpec
 		SecretKey secretKey = new SecretKeySpec(decodedKey, 0, decodedKey.length, "HmacSHA256");
 
@@ -220,7 +275,7 @@ public class Alice extends Actor {
 	    
 	    // create a digest from the byte array
 	    byte[] digest = mac.doFinal(b);
-	    String MAC = Base64.getEncoder().encodeToString(digest);
+	    String MAC = encoder.encodeToString(digest);
 		return MAC;
 	}
 	

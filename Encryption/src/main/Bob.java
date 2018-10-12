@@ -24,10 +24,12 @@ public class Bob extends Actor {
 	private PublicKey alicePubKey;
 	private PublicKey bobPubKey;
 	private PrivateKey bobPrivateKey;
-	private Base64.Decoder decoder = Base64.getDecoder();
+	
+	private Cipher keyDecrypter;
+	
 	private String MACKey;
 	private int counter = 0;
-	
+
 	public Bob(String alicePubKeyFile, String bobPubKeyFile, String bobPrivateKeyFile, String bobPort, String config) throws Exception {
 		
 		//initialize instance variables
@@ -42,6 +44,9 @@ public class Bob extends Actor {
 		//Resolve the version
 		resolveConfig(config);
 		
+		keyDecrypter = Cipher.getInstance("RSA/None/OAEPWithSHA1AndMGF1Padding", "BC");
+		keyDecrypter.init(Cipher.DECRYPT_MODE, bobPrivateKey, new SecureRandom());
+		
 		//attempt to create a server with the given port number
 		int portNumber = Integer.parseInt(bobPort);
 		try {
@@ -54,9 +59,31 @@ public class Bob extends Actor {
 			System.out.println("Client connected");
 			DataInputStream streamIn = new DataInputStream(new BufferedInputStream(clientSocket.getInputStream()));
 			
-			//Get the key exchange
-			//String keyExchange = getKeyExchange(streamIn.readUTF().getBytes());
-			
+			//Get the key exchange			
+			if (macs) {
+				String incomingMac = streamIn.readUTF();
+				String[] msgParts = incomingMac.split(", ");
+ 				
+				if(msgParts.length == 6 && msgParts[1].compareTo("MacExchange") == 0
+						&& verifyCounter(msgParts)) {
+
+					Signature signer = Signature.getInstance("SHA256withRSA");					
+					System.out.println(extractSignedMsg(msgParts));
+					
+					byte[] signedBytes = decoder.decode(msgParts[msgParts.length - 1]);
+					byte[] cipherBytes = encoder.encode(extractSignedMsg(msgParts).getBytes("UTF-8"));
+
+					if (!MySignature.verify(signer, alicePubKey, signedBytes, cipherBytes)) {
+						System.out.println("MAC key has been tampered with by Mallory!");
+					}
+					
+					byte[] macKeyBytes = keyDecrypter.doFinal(decoder.decode(msgParts[4]));
+					MACKey = new String(macKeyBytes);
+					System.out.println("MAC key from Alice is: " + MACKey);
+				} else {
+					System.out.println("MAC key has been tampered with by Mallory!");
+				}
+			}
 			
 			boolean finished = false;
 			
@@ -69,51 +96,39 @@ public class Bob extends Actor {
 					String[] msgParts = incomingMsg.split(", ");
 					String message = "";
 					System.out.println("Message from Mallory of array length "+ msgParts.length);
-
-					
-					if(msgParts.length == 6 && msgParts[1].compareTo("MacExchange") == 0) {
-						
-						Cipher cipher = Cipher.getInstance("RSA/None/OAEPWithSHA1AndMGF1Padding", "BC");
-						Signature signer = Signature.getInstance("SHA256withRSA");
-						
-						cipher.init(Cipher.DECRYPT_MODE, bobPrivateKey, new SecureRandom());
-						byte[] macKeyBytes = cipher.doFinal(decoder.decode(msgParts[4]));
-						
-						byte[] signedBytes = decoder.decode(msgParts[msgParts.length - 1]);
-						
-						System.out.println(extractSignedMsg(msgParts));
-						byte[] cipherBytes = encoder.encode(extractSignedMsg(msgParts).getBytes("UTF-8"));
-						
-						MACKey = new String(macKeyBytes);
-						System.out.println("MAC key from Alice is: " + MACKey);
-						
-						if (!MySignature.verify(signer, alicePubKey, signedBytes, cipherBytes)) {
-							System.out.println("Message has been tampered with by Mallory!");
-						}
-					}
 					
 					//Encrypt and MAC
-					else if(msgParts.length==5 && macs&&encrypt) {
-						String MAC = msgParts[4];
+					if(msgParts.length==7 && macs && encrypt) {
+						String MAC = msgParts[6];
 						
-						if(generateMAC(msgParts[0]+", "+msgParts[1]+", "+msgParts[2]+", "+msgParts[3]).compareTo(MAC)==0) {
-							String decryptedMsg = decrypt(msgParts[3],decryptRSA(msgParts[2]));
-							message = decryptedMsg;
-							System.out.println("Message from Alice: " +decryptedMsg);
+						if(generateMAC(extractSignedMsg(msgParts)).compareTo(MAC)==0) {
+							if (verifyCounter(msgParts)) {
+								String decryptedMsg = decrypt(msgParts[5],decryptRSA(msgParts[4]));
+								message = decryptedMsg;
+								System.out.println("Message from Alice: " +decryptedMsg);
+							} else {
+								System.out.println("Counter is off, Mallory has deleted previous message(s)");
+							}
 						}
 						else {
 							System.out.println("MAC doesn't correspond. Message has been tampered with");
 						}
 					}
 					//Encrypt only
-					else if(msgParts.length ==4&& !macs&&encrypt) {
-						String decryptedMsg = decrypt(msgParts[3],decryptRSA(msgParts[2]));
-						message = decryptedMsg;
-						System.out.println("Message from Alice: " +decryptedMsg);
+					else if(msgParts.length == 6 && !macs && encrypt) {
+						if (verifyCounter(msgParts)) {
+							String decryptedMsg = decrypt(msgParts[5],decryptRSA(msgParts[4]));
+							message = decryptedMsg;
+							System.out.println("Message from Alice: " +decryptedMsg);
+						}
+						else {
+							System.out.println("Counter is off, Mallory has tampered with this and/or previous message(s)");
+						}
+
 					}
 					//MAC only
-					else if(msgParts.length ==3 && macs&&!encrypt) {
-						if(generateMAC(msgParts[0]+", "+msgParts[1]).compareTo(msgParts[2]) == 0) {
+					else if(msgParts.length == 6 && macs&&!encrypt) {
+						if(generateMAC(extractSignedMsg(msgParts)).compareTo(msgParts[6]) == 0) {
 							System.out.println("Message from Alice: "+msgParts[1]);
 							message = msgParts[1];
 						}
@@ -121,14 +136,17 @@ public class Bob extends Actor {
 							
 							System.out.println("MAC doesn't correspond. Message has been tampered with");
 						}
+					} 
+					else if(msgParts.length == 5 && !macs&&!encrypt) {
+						if (verifyCounter(msgParts)) {
+							System.out.println("Message from Alice: "+ msgParts[4]);
+						} else {
+							System.out.println("Counter is off, Mallory has tampered with this and/or previous message(s)");
+						}
 					}
-					else if(!macs&&!encrypt) {
-						System.out.println("Message from Alice: "+msgParts);
-					}
-					else {
-						System.out.println("Somebody tempered with the message");
-					}
-					
+				 
+					counter++;
+				
 					finished = message.equals("done");
 				}
 				catch(IOException ioe) {
@@ -150,6 +168,13 @@ public class Bob extends Actor {
 		
 	}
 	
+	private boolean verifyCounter(String[] msgParts) {
+		int msgCounter = Integer.parseInt(msgParts[2]);
+		int msgTimeDif = (int) (System.currentTimeMillis() 
+									- Long.parseLong(msgParts[3]));
+
+		return (msgCounter == counter) && (msgTimeDif < 120000);
+	}
 	
 	private String extractSignedMsg(String[] msgParts) {
 		StringBuilder acc = new StringBuilder();
@@ -164,11 +189,7 @@ public class Bob extends Actor {
 	}
 	
 	public String decryptRSA(String rsaEncTex) throws Exception {
-		Cipher cipher = Cipher.getInstance("RSA/None/OAEPWithSHA1AndMGF1Padding", "BC");
-		
-		SecureRandom random = new SecureRandom();
-		cipher.init(Cipher.DECRYPT_MODE, bobPrivateKey, random);
-		byte[] messageBytes = cipher.doFinal(decoder.decode(rsaEncTex));
+		byte[] messageBytes = keyDecrypter.doFinal(decoder.decode(rsaEncTex));
 
 		String message = new String(messageBytes);
 		
