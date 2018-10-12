@@ -91,7 +91,6 @@ public class Bob extends Actor {
 			//read input from Mallory
 			while(!finished) {
 				try {
-					
 					String incomingMsg = streamIn.readUTF();
 					System.out.println("Recieved msg: " + incomingMsg);
 					String[] msgParts = incomingMsg.split(", ");
@@ -99,52 +98,75 @@ public class Bob extends Actor {
 					
 					//Encrypt and MAC
 					if(msgParts.length==7 && macs && encrypt) {
-						String MAC = msgParts[6];
-						
-						if(generateMAC(extractSignedMsg(msgParts)).compareTo(MAC)==0) {
-							if (verifyCounter(msgParts)) {
-								String decryptedMsg = decrypt(msgParts[5],decryptRSA(msgParts[4]));
-								message = decryptedMsg;
-								System.out.println("Message from Alice: " +decryptedMsg);
-							} else {
-								System.out.println("Counter is off, Mallory has deleted previous message(s)");
+						try {
+							String MAC = msgParts[6];
+							
+							if(generateMAC(extractSignedMsg(msgParts)).compareTo(MAC)==0) {
+								if (verifyCounter(msgParts)) {
+									String decryptedMsg = decrypt(msgParts[5],decryptRSA(msgParts[4]));
+									message = decryptedMsg;
+									System.out.println("Message from Alice: " +decryptedMsg);
+								} else {
+									System.out.println("Counter is off, Mallory has deleted previous message(s)");
+								}
 							}
-						}
-						else {
-							System.out.println("MAC doesn't correspond. Message has been tampered with");
+							else {
+								System.out.println("MAC doesn't correspond. Message has been tampered with");
+							}
+						} catch (Exception e) {
+							System.out.println("Message has been tampered with");
 						}
 						counter++;
 					}
 					//Encrypt only
 					else if(msgParts.length == 6 && !macs && encrypt) {
-						if (verifyCounter(msgParts)) {
-							String decryptedMsg = decrypt(msgParts[5],decryptRSA(msgParts[4]));
-							message = decryptedMsg;
-							System.out.println("Message from Alice: " +decryptedMsg);
-						}
-						else {
-							System.out.println("Counter is off, Mallory has tampered with this and/or previous message(s)");
+						try {
+							if (msgParts[0].compareTo("Bob") != 0) {
+								System.out.println("Receiver is not Bob! Message is not relevant");
+							} 
+							else if (msgParts[1].compareTo("NewMessage") != 0) {
+								System.out.println("Message type is unknown.");
+							}
+							else if (verifyCounter(msgParts)) {
+								String decryptedMsg = decrypt(msgParts[5],decryptRSA(msgParts[4]));
+								message = decryptedMsg;
+								System.out.println("Message from Alice: " +decryptedMsg);
+							}
+							else {
+								System.out.println("Counter is off, Mallory has tampered with this and/or previous message(s)");
+							}
+						} catch (Exception e) {
+							System.out.println("Message has been tampered with");
 						}
 						counter++;
 
 					}
 					//MAC only
 					else if(msgParts.length == 6 && macs&&!encrypt) {
-						if(generateMAC(extractSignedMsg(msgParts)).compareTo(msgParts[5]) == 0) {
-							if (verifyCounter(msgParts)) {
-								System.out.println("Message from Alice: "+msgParts[4]);
-							} else {
-								System.out.println("Counter is off, Mallory has tampered with this and/or previous message(s)");
+						try {
+							if(generateMAC(extractSignedMsg(msgParts)).compareTo(msgParts[5]) == 0) {
+								if (verifyCounter(msgParts)) {
+									System.out.println("Message from Alice: "+msgParts[4]);
+								} else {
+									System.out.println("Counter is off, Mallory has tampered with this and/or previous message(s)");
+								}
 							}
-						}
-						else {
-							System.out.println("MAC doesn't correspond. Message has been tampered with");
+							else {
+								System.out.println("MAC doesn't correspond. Message has been tampered with");
+							}
+						} catch(Exception e) {
+							System.out.println("Message has been tampered with");
 						}
 						counter++;
 						
 					} 
 					else if(msgParts.length == 5 && !macs&&!encrypt) {
-						if (verifyCounter(msgParts)) {
+						if (msgParts[0].compareTo("Bob") != 0) {
+							System.out.println("Receiver is not Bob! Message is not relevant");
+						} 
+						else if (msgParts[1].compareTo("NewMessage") != 0) {
+							System.out.println("Message type is unknown.");
+						} else if (verifyCounter(msgParts)) {
 							System.out.println("Message from Alice: "+ msgParts[4]);
 						} else {
 							System.out.println("Counter is off, Mallory has tampered with this and/or previous message(s)");
@@ -153,8 +175,6 @@ public class Bob extends Actor {
 					} else {
 						System.out.println("Incorrect message format, Mallory has tampered with this message.");
 					}
-				 
-
 				
 					finished = message.equals("done");
 				}
@@ -178,11 +198,15 @@ public class Bob extends Actor {
 	}
 	
 	private boolean verifyCounter(String[] msgParts) {
-		int msgCounter = Integer.parseInt(msgParts[2]);
-		int msgTimeDif = (int) (System.currentTimeMillis() 
-									- Long.parseLong(msgParts[3]));
+		try {
+			int msgCounter = Integer.parseInt(msgParts[2]);
+			int msgTimeDif = (int) (System.currentTimeMillis() 
+										- Long.parseLong(msgParts[3]));
+			return (msgCounter == counter) && (msgTimeDif < 120000);
+		} catch (Exception e) {
+			return false;
+		}
 
-		return (msgCounter == counter) && (msgTimeDif < 120000);
 	}
 	
 	private String extractSignedMsg(String[] msgParts) {

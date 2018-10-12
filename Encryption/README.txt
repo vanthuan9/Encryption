@@ -16,20 +16,6 @@ Go to your Java Package in Eclipse and select 'Build Path' > 'Configure Build Pa
 -----------------------------------------------
 
 2. Detailed usage:
-//The submission includes .java and .jar files.
-
-Set-up Steps:  //should be run before every experiment
-1. Start a new terminal window, navigate to where .jar files are located
-2. input: java -jar Gen.jar APublicKey.pem APrivateKey.pem BPublicKey.pem BPrivateKey.pem
-3. input: java -jar Bob.jar APublicKey.pem BPublicKey.pem BPrivateKey.pem 2001 noCrypt
-4. Start another terminal window, navigate to .jar files
-5. input: java -jar Mallory.jar APublicKey.pem BPublicKey.pem 2000 2001 noCrypt
-6. Start another terminal window, navigate to .jar files
-7. input: java -jar Alice.jar APublicKey.pem APrivateKey.pem BPublicKey.pem 2000 noCrypt
-
-
-
------------------------------------------------
 
 Experiment 1: No encryption
 1. Start a new terminal window, navigate to where .jar files are located
@@ -61,8 +47,9 @@ Experiment 1: No encryption
 //In Mallory's terminal window
 13. input: modify
 14. input: *copy and paste Alice's entire transmission except with the counter and message altered
-//make sure the the counter is subtracted by 1 since the last message was deleted, or Bob will detect it
+//make sure the the counter is subtracted by 2 since the last message was deleted, or Bob will detect it
 //Bob will now receive and display Mallory's message
+
 
 
 -----------------------------------------------
@@ -129,10 +116,6 @@ Experiment 3: Mac Only
 15. input: send
 
 //Bob will receive the message, but will also recognize the replay attack
-
-
-
-
 
 -----------------------------------------------
 
