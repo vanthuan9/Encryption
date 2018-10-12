@@ -16,7 +16,7 @@ public abstract class Actor {
 			encrypt = true;
 		} else if (config.compareTo("macOnly") == 0) {
 			macs = true;
-		} else if (config.compareTo("mac&Enc") == 0) {
+		} else if (config.compareTo("macWEnc") == 0) {
 			encrypt = true;
 			macs = true;
 		} else {

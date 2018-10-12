@@ -122,11 +122,11 @@ Experiment 3: Mac Only
 Experiment 4: Enc-then-Mac
 1. Start a new terminal window, navigate to where .jar files are located
 2. input: java -jar Gen.jar APublicKey.pem APrivateKey.pem BPublicKey.pem BPrivateKey.pem
-3. input: java -jar Bob.jar APublicKey.pem BPublicKey.pem BPrivateKey.pem 2001 mac&Enc
+3. input: java -jar Bob.jar APublicKey.pem BPublicKey.pem BPrivateKey.pem 2001 macWEnc
 4. Start another terminal window, navigate to .jar files
-5. input: java -jar Mallory.jar APublicKey.pem BPublicKey.pem 2000 2001 mac&Enc
+5. input: java -jar Mallory.jar APublicKey.pem BPublicKey.pem 2000 2001 macWEnc
 6. Start another terminal window, navigate to .jar files
-7. input: java -jar Alice.jar APublicKey.pem APrivateKey.pem BPublicKey.pem 2000 mac&Enc
+7. input: java -jar Alice.jar APublicKey.pem APrivateKey.pem BPublicKey.pem 2000 macWEnc
 
 //Since MAC is enabled, Alice will attempt to send a MAC key to Bob. As Mallory:
 7.5 input: send
@@ -149,7 +149,7 @@ List of valid config:
   noCrypt - No Cryptography mode
   macOnly - MACs only
   encOnly - Symmetric encryption only mode
-  mac&Enc - Symmetric encryption then MAC
+  macWEnc - Symmetric encryption then MAC
 
 -----------------------------------------------
 
