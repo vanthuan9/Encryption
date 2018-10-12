@@ -27,7 +27,6 @@ public class Bob extends Actor {
 	private Base64.Decoder decoder = Base64.getDecoder();
 	private String MACKey;
 	private int counter = 0;
-	private boolean macSet = false;
 	
 	public Bob(String alicePubKeyFile, String bobPubKeyFile, String bobPrivateKeyFile, String bobPort, String config) throws Exception {
 		
@@ -39,7 +38,7 @@ public class Bob extends Actor {
 		//notify the identity of the server to the user
 		System.out.println("This is Bob");
 		
-<<<<<<< HEAD
+
 		//Resolve the version
 		resolveConfig(config);
 		
@@ -94,7 +93,7 @@ public class Bob extends Actor {
 					}
 					
 					//Encrypt and MAC
-					else if(msgParts.length==5 && mac&&encrypt) {
+					else if(msgParts.length==5 && macs&&encrypt) {
 						String MAC = msgParts[4];
 						
 						if(generateMAC(msgParts[0]+", "+msgParts[1]+", "+msgParts[2]+", "+msgParts[3]).compareTo(MAC)==0) {
@@ -107,13 +106,13 @@ public class Bob extends Actor {
 						}
 					}
 					//Encrypt only
-					else if(msgParts.length ==4&& !mac&&encrypt) {
+					else if(msgParts.length ==4&& !macs&&encrypt) {
 						String decryptedMsg = decrypt(msgParts[3],decryptRSA(msgParts[2]));
 						message = decryptedMsg;
 						System.out.println("Message from Alice: " +decryptedMsg);
 					}
 					//MAC only
-					else if(msgParts.length ==3 && mac&&!encrypt) {
+					else if(msgParts.length ==3 && macs&&!encrypt) {
 						if(generateMAC(msgParts[0]+", "+msgParts[1]).compareTo(msgParts[2]) == 0) {
 							System.out.println("Message from Alice: "+msgParts[1]);
 							message = msgParts[1];
@@ -123,7 +122,7 @@ public class Bob extends Actor {
 							System.out.println("MAC doesn't correspond. Message has been tampered with");
 						}
 					}
-					else if(!mac&&!encrypt) {
+					else if(!macs&&!encrypt) {
 						System.out.println("Message from Alice: "+msgParts);
 					}
 					else {
