@@ -92,10 +92,9 @@ public class Bob extends Actor {
 				try {
 					
 					String incomingMsg = streamIn.readUTF();
-					System.out.println(incomingMsg);
+					System.out.println("Recieved msg: " + incomingMsg);
 					String[] msgParts = incomingMsg.split(", ");
 					String message = "";
-					System.out.println("Message from Mallory of array length "+ msgParts.length);
 					
 					//Encrypt and MAC
 					if(msgParts.length==7 && macs && encrypt) {
@@ -146,6 +145,8 @@ public class Bob extends Actor {
 						} else {
 							System.out.println("Counter is off, Mallory has tampered with this and/or previous message(s)");
 						}
+					} else {
+						System.out.println("Incorrect message format, Mallory has tampered with this message.");
 					}
 				 
 					counter++;
