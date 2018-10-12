@@ -116,7 +116,7 @@ public class Mallory extends Actor {
 	 */
 	public String modify(String s) {
 		
-		System.out.println("How should we modifie this message?");
+		System.out.println("How should we modify this message?");
 		System.out.println
 		("Type 'send' to send, 'delete' to delete, 'modify' to modify, 'replay' to replay previous interceptions");
 		

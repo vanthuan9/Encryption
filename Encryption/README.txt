@@ -47,10 +47,8 @@ Experiment 1: No encryption
 //In Mallory's terminal window
 13. input: modify
 14. input: *copy and paste Alice's entire transmission except with the counter and message altered
-//make sure the the counter is subtracted by 2 since the last message was deleted, or Bob will detect it
+//make sure the the counter is subtracted by 1 since the last message was deleted, or Bob will detect it
 //Bob will now receive and display Mallory's message
-
-
 
 -----------------------------------------------
 
